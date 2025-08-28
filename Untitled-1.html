@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MonBudget - Gestionnaire de Budget Personnel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-shadow { box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        /* Animations removed for better performance */
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="gradient-bg text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold">💰 MonBudget</h1>
+                </div>
+                <div class="flex space-x-4">
+                    <button onclick="showSection('dashboard')" class="nav-btn px-4 py-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all">Tableau de bord</button>
+                    <button onclick="showSection('transactions')" class="nav-btn px-4 py-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all">Transactions</button>
+                    <button onclick="showSection('budget')" class="nav-btn px-4 py-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all">Budget</button>
+                    <button onclick="showSection('reports')" class="nav-btn px-4 py-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all">Rapports</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="section">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Tableau de bord</h2>
+                <p class="text-gray-600">Vue d'ensemble de vos finances</p>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl card-shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Solde Total</p>
+                            <p id="total-balance" class="text-2xl font-bold text-green-600">€0</p>
+                        </div>
+                        <div class="bg-green-100 p-3 rounded-full">
+                            <span class="text-2xl">💳</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl card-shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Économies</p>
+                            <p id="savings" class="text-2xl font-bold text-purple-600">€0</p>
+                        </div>
+                        <div class="bg-purple-100 p-3 rounded-full">
+                            <span class="text-2xl">🎯</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Simple Stats instead of moving chart -->
+            <div class="grid grid-cols-1 gap-8 mb-8">
+                <div class="bg-white p-6 rounded-xl card-shadow">
+                    <h3 class="text-lg font-semibold mb-4">Résumé mensuel</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center p-4 bg-green-50 rounded-lg">
+                            <p class="text-sm text-gray-600">Revenus ce mois</p>
+                            <p id="monthly-income" class="text-xl font-bold text-green-600">€0</p>
+                        </div>
+                        <div class="text-center p-4 bg-red-50 rounded-lg">
+                            <p class="text-sm text-gray-600">Dépenses ce mois</p>
+                            <p id="monthly-expenses" class="text-xl font-bold text-red-600">€0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="bg-white rounded-xl card-shadow p-6">
+                <h3 class="text-lg font-semibold mb-4">Transactions récentes</h3>
+                <div id="recent-transactions" class="space-y-3">
+                    <!-- Transactions will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Section -->
+        <div id="transactions" class="section hidden">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Transactions</h2>
+                <p class="text-gray-600">Gérez vos revenus et dépenses</p>
+            </div>
+
+            <!-- Add Transaction Form -->
+            <div class="bg-white rounded-xl card-shadow p-6 mb-8">
+                <h3 class="text-lg font-semibold mb-4">Ajouter une transaction</h3>
+                <form id="transaction-form" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                        <input type="text" id="description" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ex: Courses" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Montant (€)</label>
+                        <input type="number" id="amount" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="0.00" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                        <select id="type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="expense">Dépense</option>
+                            <option value="income">Revenu</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Catégorie</label>
+                        <select id="category" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="alimentation">Alimentation</option>
+                            <option value="transport">Transport</option>
+                            <option value="logement">Logement</option>
+                            <option value="loisirs">Loisirs</option>
+                            <option value="sante">Santé</option>
+                            <option value="salaire">Salaire</option>
+                            <option value="freelance">Freelance</option>
+                            <option value="autre">Autre</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium">Ajouter</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Transactions List -->
+            <div class="bg-white rounded-xl card-shadow p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Historique des transactions</h3>
+                    <div class="flex space-x-2">
+                        <select id="filter-category" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            <option value="">Toutes les catégories</option>
+                            <option value="alimentation">Alimentation</option>
+                            <option value="transport">Transport</option>
+                            <option value="logement">Logement</option>
+                            <option value="loisirs">Loisirs</option>
+                            <option value="sante">Santé</option>
+                            <option value="salaire">Salaire</option>
+                            <option value="freelance">Freelance</option>
+                            <option value="autre">Autre</option>
+                        </select>
+                        <select id="filter-type" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            <option value="">Tous les types</option>
+                            <option value="income">Revenus</option>
+                            <option value="expense">Dépenses</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="transactions-list" class="space-y-3">
+                    <!-- Transactions will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Section -->
+        <div id="budget" class="section hidden">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Budget</h2>
+                <p class="text-gray-600">Définissez et suivez vos objectifs budgétaires</p>
+            </div>
+
+            <!-- Budget Form -->
+            <div class="bg-white rounded-xl card-shadow p-6 mb-8">
+                <h3 class="text-lg font-semibold mb-4">Définir un budget</h3>
+                <form id="budget-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Catégorie</label>
+                        <select id="budget-category" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="alimentation">Alimentation</option>
+                            <option value="transport">Transport</option>
+                            <option value="logement">Logement</option>
+                            <option value="loisirs">Loisirs</option>
+                            <option value="sante">Santé</option>
+                            <option value="autre">Autre</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Budget mensuel (€)</label>
+                        <input type="number" id="budget-amount" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="0.00" required>
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium">Définir Budget</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Budget Overview -->
+            <div id="budget-overview" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Budget cards will be populated here -->
+            </div>
+        </div>
+
+        <!-- Reports Section -->
+        <div id="reports" class="section hidden">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Rapports</h2>
+                <p class="text-gray-600">Analysez vos habitudes financières</p>
+            </div>
+
+            <!-- Report Controls -->
+            <div class="bg-white rounded-xl card-shadow p-6 mb-8">
+                <div class="flex flex-wrap gap-4 items-center">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Période</label>
+                        <select id="report-period" class="px-3 py-2 border border-gray-300 rounded-lg">
+                            <option value="month">Ce mois</option>
+                            <option value="quarter">Ce trimestre</option>
+                            <option value="year">Cette année</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="generateReport()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium">Générer Rapport</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Results -->
+            <div id="report-results" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Report content will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Storage
+        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+        let budgets = JSON.parse(localStorage.getItem('budgets')) || {};
+        let charts = {};
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            // Activate dashboard by default
+            showSection('dashboard');
+        });
+
+        function initializeApp() {
+            updateDashboard();
+            updateTransactionsList();
+            updateBudgetOverview();
+            setupEventListeners();
+            initializeCharts();
+        }
+
+        function setupEventListeners() {
+            // Transaction form
+            document.getElementById('transaction-form').addEventListener('submit', addTransaction);
+            
+            // Budget form
+            document.getElementById('budget-form').addEventListener('submit', setBudget);
+            
+            // Filters
+            document.getElementById('filter-category').addEventListener('change', filterTransactions);
+            document.getElementById('filter-type').addEventListener('change', filterTransactions);
+        }
+
+        function showSection(sectionName) {
+            try {
+                // Hide all sections
+                document.querySelectorAll('.section').forEach(section => {
+                    section.classList.add('hidden');
+                });
+                
+                // Show selected section
+                const targetSection = document.getElementById(sectionName);
+                if (targetSection) {
+                    targetSection.classList.remove('hidden');
+                }
+                
+                // Update navigation
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.classList.remove('bg-white', 'bg-opacity-20');
+                });
+                
+                // Add active class to current section button
+                const activeBtn = document.querySelector(`[onclick="showSection('${sectionName}')"]`);
+                if (activeBtn) {
+                    activeBtn.classList.add('bg-white', 'bg-opacity-20');
+                }
+                
+                // Charts are loaded only once when needed
+            } catch (error) {
+                console.error('Erreur lors du changement de section:', error);
+            }
+        }
+
+        function addTransaction(e) {
+            e.preventDefault();
+            
+            const description = document.getElementById('description').value.trim();
+            const amount = parseFloat(document.getElementById('amount').value);
+            const type = document.getElementById('type').value;
+            const category = document.getElementById('category').value;
+            
+            // Validation
+            if (!description) {
+                showNotification('Veuillez saisir une description', 'error');
+                return;
+            }
+            
+            if (!amount || amount <= 0) {
+                showNotification('Veuillez saisir un montant valide', 'error');
+                return;
+            }
+            
+            const transaction = {
+                id: Date.now(),
+                description,
+                amount,
+                type,
+                category,
+                date: new Date().toISOString()
+            };
+            
+            transactions.unshift(transaction);
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            
+            // Reset form
+            document.getElementById('transaction-form').reset();
+            
+            // Update displays
+            updateDashboard();
+            updateTransactionsList();
+            updateBudgetOverview();
+            
+            // Show success message
+            showNotification('Transaction ajoutée avec succès!', 'success');
+        }
+
+        function setBudget(e) {
+            e.preventDefault();
+            
+            const category = document.getElementById('budget-category').value;
+            const amount = parseFloat(document.getElementById('budget-amount').value);
+            
+            // Validation
+            if (!amount || amount <= 0 || amount > 999999.99) {
+                showNotification('Veuillez saisir un montant valide (entre 0.01€ et 999,999.99€)', 'error');
+                return;
+            }
+            
+            budgets[category] = amount;
+            localStorage.setItem('budgets', JSON.stringify(budgets));
+            
+            // Reset form
+            document.getElementById('budget-form').reset();
+            
+            // Update display
+            updateBudgetOverview();
+            
+            showNotification('Budget défini avec succès!', 'success');
+        }
+
+        function updateDashboard() {
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+            
+            const monthlyTransactions = transactions.filter(t => {
+                const transactionDate = new Date(t.date);
+                return transactionDate.getMonth() === currentMonth && 
+                       transactionDate.getFullYear() === currentYear;
+            });
+            
+            const totalIncome = monthlyTransactions
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            const totalExpenses = monthlyTransactions
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            const totalBalance = totalIncome - totalExpenses;
+            const savings = totalBalance > 0 ? totalBalance : 0;
+            
+            document.getElementById('total-balance').textContent = `€${totalBalance.toFixed(2)}`;
+            document.getElementById('savings').textContent = `€${savings.toFixed(2)}`;
+            
+            // Update monthly stats
+            document.getElementById('monthly-income').textContent = `€${totalIncome.toFixed(2)}`;
+            document.getElementById('monthly-expenses').textContent = `€${totalExpenses.toFixed(2)}`;
+            
+            updateRecentTransactions();
+        }
+
+        function updateRecentTransactions() {
+            const recentTransactions = transactions.slice(0, 5);
+            const container = document.getElementById('recent-transactions');
+            
+            if (recentTransactions.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">Aucune transaction récente</p>';
+                return;
+            }
+            
+            container.innerHTML = recentTransactions.map(transaction => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center ${transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'}">
+                            <span class="text-lg">${getCategoryIcon(transaction.category)}</span>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">${transaction.description}</p>
+                            <p class="text-sm text-gray-500">${transaction.category} • ${formatDate(transaction.date)}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="text-right">
+                            <p class="font-semibold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}">
+                                ${transaction.type === 'income' ? '+' : '-'}€${transaction.amount.toFixed(2)}
+                            </p>
+                        </div>
+                        <button onclick="editTransaction(${transaction.id})" class="text-blue-500 hover:text-blue-700 p-2 rounded hover:bg-blue-50 transition-colors" title="Modifier">
+                            ✏️
+                        </button>
+                        <button onclick="deleteTransaction(${transaction.id})" class="text-red-500 hover:text-red-700 p-2 rounded hover:bg-red-50 transition-colors" title="Supprimer">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateTransactionsList() {
+            const container = document.getElementById('transactions-list');
+            const filteredTransactions = getFilteredTransactions();
+            
+            if (filteredTransactions.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">Aucune transaction trouvée</p>';
+                return;
+            }
+            
+            container.innerHTML = filteredTransactions.map(transaction => `
+                <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center ${transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'}">
+                            <span class="text-xl">${getCategoryIcon(transaction.category)}</span>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">${transaction.description}</p>
+                            <p class="text-sm text-gray-500">${transaction.category} • ${formatDate(transaction.date)}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-right">
+                            <p class="font-semibold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}">
+                                ${transaction.type === 'income' ? '+' : '-'}€${transaction.amount.toFixed(2)}
+                            </p>
+                            <p class="text-xs text-gray-400">${transaction.type === 'income' ? 'Revenu' : 'Dépense'}</p>
+                        </div>
+                        <button onclick="deleteTransaction(${transaction.id})" class="text-red-500 hover:text-red-700 p-2 rounded hover:bg-red-50 transition-colors">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateBudgetOverview() {
+            const container = document.getElementById('budget-overview');
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+            
+            if (Object.keys(budgets).length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">Aucun budget défini</div>';
+                return;
+            }
+            
+            container.innerHTML = Object.entries(budgets).map(([category, budgetAmount]) => {
+                const spent = transactions
+                    .filter(t => {
+                        const transactionDate = new Date(t.date);
+                        return t.type === 'expense' && 
+                               t.category === category && 
+                               transactionDate.getMonth() === currentMonth && 
+                               transactionDate.getFullYear() === currentYear;
+                    })
+                    .reduce((sum, t) => sum + t.amount, 0);
+                
+                const percentage = (spent / budgetAmount) * 100;
+                const remaining = budgetAmount - spent;
+                
+                return `
+                    <div class="bg-white rounded-xl card-shadow p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-2xl">${getCategoryIcon(category)}</span>
+                                <h3 class="font-semibold capitalize">${category}</h3>
+                            </div>
+                            <button onclick="deleteBudget('${category}')" class="text-red-500 hover:text-red-700 p-2 rounded hover:bg-red-50 transition-colors">
+                                🗑️
+                            </button>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span>Dépensé: €${spent.toFixed(2)}</span>
+                                <span>Budget: €${budgetAmount.toFixed(2)}</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="h-2 rounded-full ${percentage > 100 ? 'bg-red-500' : percentage > 80 ? 'bg-yellow-500' : 'bg-green-500'}" 
+                                     style="width: ${Math.min(percentage, 100)}%"></div>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="${remaining >= 0 ? 'text-green-600' : 'text-red-600'}">
+                                    Restant: €${remaining.toFixed(2)}
+                                </span>
+                                <span class="text-gray-500">${percentage.toFixed(1)}%</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function initializeCharts() {
+            // No more charts - just static display
+        }
+
+        function updateCharts() {
+            // No more charts to update
+        }
+
+        function getFilteredTransactions() {
+            const categoryFilter = document.getElementById('filter-category').value;
+            const typeFilter = document.getElementById('filter-type').value;
+            
+            return transactions.filter(transaction => {
+                const categoryMatch = !categoryFilter || transaction.category === categoryFilter;
+                const typeMatch = !typeFilter || transaction.type === typeFilter;
+                return categoryMatch && typeMatch;
+            });
+        }
+
+        function filterTransactions() {
+            updateTransactionsList();
+        }
+
+        function editTransaction(id) {
+            const transaction = transactions.find(t => t.id == id); // Use == for flexible comparison
+            if (!transaction) {
+                showNotification('Transaction non trouvée', 'error');
+                return;
+            }
+            
+            // Fill the form with current values
+            document.getElementById('description').value = transaction.description;
+            document.getElementById('amount').value = transaction.amount;
+            document.getElementById('type').value = transaction.type;
+            document.getElementById('category').value = transaction.category;
+            
+            // Delete the old transaction
+            transactions = transactions.filter(t => t.id != id);
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            
+            // Update displays
+            updateDashboard();
+            updateTransactionsList();
+            updateBudgetOverview();
+            
+            // Switch to transactions section
+            showSection('transactions');
+            
+            // Scroll to form
+            document.getElementById('transaction-form').scrollIntoView({ behavior: 'smooth' });
+            
+            showNotification('Transaction chargée pour modification', 'info');
+        }
+
+        function deleteTransaction(id) {
+            console.log('Tentative de suppression de la transaction ID:', id);
+            console.log('Type de l\'ID:', typeof id);
+            console.log('Transactions actuelles:', transactions.map(t => ({id: t.id, type: typeof t.id})));
+            
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette transaction ?')) {
+                const initialCount = transactions.length;
+                
+                // Convert both to strings for comparison to avoid type issues
+                transactions = transactions.filter(t => String(t.id) !== String(id));
+                
+                console.log('Transactions après filtrage:', transactions.length);
+                
+                if (transactions.length < initialCount) {
+                    localStorage.setItem('transactions', JSON.stringify(transactions));
+                    updateDashboard();
+                    updateTransactionsList();
+                    updateBudgetOverview();
+                    showNotification('Transaction supprimée avec succès !', 'success');
+                    console.log('Suppression réussie');
+                } else {
+                    showNotification('Erreur: Transaction non trouvée', 'error');
+                    console.log('Erreur: Aucune transaction supprimée');
+                }
+            }
+        }
+
+        function deleteBudget(category) {
+            if (confirm(`Êtes-vous sûr de vouloir supprimer le budget pour ${category} ?`)) {
+                delete budgets[category];
+                localStorage.setItem('budgets', JSON.stringify(budgets));
+                updateBudgetOverview();
+                showNotification('Budget supprimé', 'success');
+            }
+        }
+
+        function generateReport() {
+            const period = document.getElementById('report-period').value;
+            const container = document.getElementById('report-results');
+            
+            let startDate, endDate;
+            const now = new Date();
+            
+            switch(period) {
+                case 'month':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    break;
+                case 'quarter':
+                    const quarter = Math.floor(now.getMonth() / 3);
+                    startDate = new Date(now.getFullYear(), quarter * 3, 1);
+                    endDate = new Date(now.getFullYear(), (quarter + 1) * 3, 0);
+                    break;
+                case 'year':
+                    startDate = new Date(now.getFullYear(), 0, 1);
+                    endDate = new Date(now.getFullYear(), 11, 31);
+                    break;
+            }
+            
+            const periodTransactions = transactions.filter(t => {
+                const transactionDate = new Date(t.date);
+                return transactionDate >= startDate && transactionDate <= endDate;
+            });
+            
+            const totalIncome = periodTransactions
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            const totalExpenses = periodTransactions
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            const netIncome = totalIncome - totalExpenses;
+            
+            // Category breakdown
+            const categoryBreakdown = {};
+            periodTransactions.filter(t => t.type === 'expense').forEach(t => {
+                categoryBreakdown[t.category] = (categoryBreakdown[t.category] || 0) + t.amount;
+            });
+            
+            container.innerHTML = `
+                <div class="bg-white rounded-xl card-shadow p-6">
+                    <h3 class="text-lg font-semibold mb-4">Résumé financier</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                            <span class="font-medium">Total des revenus</span>
+                            <span class="text-green-600 font-bold">€${totalIncome.toFixed(2)}</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                            <span class="font-medium">Total des dépenses</span>
+                            <span class="text-red-600 font-bold">€${totalExpenses.toFixed(2)}</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 ${netIncome >= 0 ? 'bg-blue-50' : 'bg-yellow-50'} rounded-lg">
+                            <span class="font-medium">Résultat net</span>
+                            <span class="${netIncome >= 0 ? 'text-blue-600' : 'text-yellow-600'} font-bold">€${netIncome.toFixed(2)}</span>
+                        </div>
+                        <div class="pt-4">
+                            <p class="text-sm text-gray-600">Nombre de transactions: ${periodTransactions.length}</p>
+                            <p class="text-sm text-gray-600">Dépense moyenne: €${periodTransactions.length > 0 ? (totalExpenses / periodTransactions.filter(t => t.type === 'expense').length || 0).toFixed(2) : '0.00'}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl card-shadow p-6">
+                    <h3 class="text-lg font-semibold mb-4">Répartition par catégorie</h3>
+                    <div class="space-y-3">
+                        ${Object.entries(categoryBreakdown)
+                            .sort(([,a], [,b]) => b - a)
+                            .map(([category, amount]) => {
+                                const percentage = (amount / totalExpenses) * 100;
+                                return `
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-2">
+                                            <span>${getCategoryIcon(category)}</span>
+                                            <span class="capitalize">${category}</span>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="font-medium">€${amount.toFixed(2)}</div>
+                                            <div class="text-sm text-gray-500">${percentage.toFixed(1)}%</div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function getCategoryIcon(category) {
+            const icons = {
+                'alimentation': '🍽️',
+                'transport': '🚗',
+                'logement': '🏠',
+                'loisirs': '🎮',
+                'sante': '🏥',
+                'salaire': '💼',
+                'freelance': '💻',
+                'autre': '📦'
+            };
+            return icons[category] || '📦';
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('fr-FR');
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white font-medium z-50 ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Initialize with sample data if empty
+        if (transactions.length === 0) {
+            const sampleTransactions = [
+                { id: 1, description: 'Salaire', amount: 2500, type: 'income', category: 'salaire', date: new Date().toISOString() },
+                { id: 2, description: 'Courses Carrefour', amount: 85.50, type: 'expense', category: 'alimentation', date: new Date(Date.now() - 86400000).toISOString() },
+                { id: 3, description: 'Essence', amount: 45.20, type: 'expense', category: 'transport', date: new Date(Date.now() - 172800000).toISOString() },
+                { id: 4, description: 'Netflix', amount: 13.99, type: 'expense', category: 'loisirs', date: new Date(Date.now() - 259200000).toISOString() }
+            ];
+            
+            transactions = sampleTransactions;
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            
+            budgets = {
+                'alimentation': 400,
+                'transport': 200,
+                'loisirs': 100
+            };
+            localStorage.setItem('budgets', JSON.stringify(budgets));
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'972cca4974a13392',t:'MTc1NTgwNzE5Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
